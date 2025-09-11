@@ -1,0 +1,4 @@
+asyncio
+websockets==11.0.3
+pyodbc
+pywin32

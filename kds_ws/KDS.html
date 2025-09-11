@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KDS</title>
+    <link rel="stylesheet" href="KDS.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <img id="logo" src="data/logo.png" />
+      <h1>KDS</h1>
+      <div id="clock">00:00:00</div>
+    </header>
+
+    <!-- Controls -->
+    <div id="controls">
+      <div id="sort-buttons" class="control-block">
+        <button id="sort-time">Sort by Time</button>
+        <button id="sort-table">Sort by Table</button>
+      </div>
+
+      <!-- View Toggle Buttons -->
+      <div id="view-buttons" class="control-block">
+        <button id="view-kot" class="active">KOT View</button>
+        <button id="view-item">Item View</button>
+      </div>
+
+      <div id="filter-checkboxes" class="control-block">
+        <label><input type="checkbox" value="Pending" checked /> Pending</label>
+        <label><input type="checkbox" value="Ready" checked /> Ready</label>
+        <label
+          ><input type="checkbox" value="Delivered" checked /> Delivered</label
+        >
+      </div>
+    </div>
+
+    <!-- Tickets Grid -->
+    <div class="ticket-grid" id="tickets"></div>
+
+    <!-- Food Summary -->
+    <div id="food-summary">
+      <h1>Items</h1>
+    </div>
+
+    <!-- Sound -->
+    <audio id="new-ticket-sound" src="new_ticket.mp3" preload="auto"></audio>
+
+    <script src="KDS.js"></script>
+  </body>
+</html>
