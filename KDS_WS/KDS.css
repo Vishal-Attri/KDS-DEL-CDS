@@ -1,0 +1,358 @@
+/* ===================== Root & Variables ===================== */
+:root {
+  --bg: #f4f4f5;
+  --card: #ffffff;
+  --muted: #6c757d;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius: 7px;
+  --gap: 5px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    sans-serif;
+
+  --header-bg: #1f2937;
+  --header-color: #ffffff;
+
+  --btn-primary: #0b5cff;
+  --btn-hover: #0a4bcc;
+
+  --status-preparing: #f59e0b;
+  --status-ready: #16a34a;
+  --status-delivered: #374151;
+}
+
+/* ===================== Global Styles ===================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: #111827;
+}
+
+/* ===================== Header ===================== */
+header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 10px;
+  background: #1f2937; /* dark bg */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+/* ===================== Hamburger ===================== */
+#hamburger {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 28px;
+  cursor: pointer;
+  color: white;
+  z-index: 1001;
+}
+
+#kot-count {
+  position: absolute;
+  left: 60px;
+  font-size: 14px;
+  color: white;
+  font-weight: 500;
+}
+
+header h1 {
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+#clock {
+  position: absolute;
+  right: 20px;
+  font-size: 14px;
+  color: white;
+  font-weight: 500;
+  font-family: monospace;
+}
+
+h1 {
+  color: #111827;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* ===================== Sidebar ===================== */
+#sidebar {
+  position: fixed;
+  left: -250px; /* hidden initially */
+  top: 0;
+  width: 250px;
+  height: 100%;
+  background: #1f2937; /* dark gray */
+  color: white;
+  padding-top: 60px;
+  transition: left 0.3s ease;
+  z-index: 1000;
+}
+
+#sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+#sidebar ul li {
+  padding: 15px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+#sidebar ul li:hover {
+  background: #374151; /* darker on hover */
+}
+
+/* ===================== Config/Login Modal ===================== */
+#config-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+#config-modal-content {
+  background: white;
+  padding: 25px 20px;
+  border-radius: 10px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+#config-modal-content input {
+  width: 90%;
+  padding: 8px;
+  margin: 10px 0;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+#config-modal-content button {
+  padding: 8px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+#config-modal-content button:hover {
+  background: #1e40af;
+}
+
+/* ===================== Controls ===================== */
+#controls {
+  display: flex;
+  gap: 12px;
+  padding: 2px 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-block {
+  border: solid 1px #ccc;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--card);
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+#sort-buttons button {
+  background: var(--btn-primary);
+  color: white;
+  border: none;
+  padding: 3px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s;
+}
+
+#sort-buttons button:hover {
+  background: var(--btn-hover);
+}
+#view-buttons button {
+  background: #0b5cff;
+  color: white;
+  border: none;
+  padding: 3px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+#view-buttons button.active {
+  background: #0a4bcc;
+}
+
+#view-buttons button:hover {
+  background: #0a4bcc;
+}
+
+#filter-checkboxes {
+  margin-left: auto;
+}
+
+#filter-checkboxes label {
+  font-size: 12px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+#filter-checkboxes input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--btn-primary);
+}
+
+/* ===================== Ticket Grid Masonry ===================== */
+.ticket-grid {
+  column-count: 3;
+  column-gap: var(--gap);
+  padding: 0px 3px;
+  width: 79%;
+}
+
+.ticket {
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: var(--gap);
+}
+
+/* ===================== Ticket Card ===================== */
+.ticket {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 4px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ticket:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ticket-items {
+  font-weight: 650;
+}
+
+.ticket-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 3px;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+}
+
+.ticket-item:last-child {
+  border-bottom: none;
+  margin-bottom: 6px;
+  padding-bottom: 0;
+}
+
+#ticket_new {
+  background-color: lightblue; /* light yellow */
+  border-color: #fbbf24; /* orange border */
+}
+
+#ticket_accepted {
+  background-color: #e6ffed;
+  border-color: #22c55e;
+}
+
+.item-name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 90%;
+}
+
+.item-comment {
+  font-size: 11px;
+  color: #6c757d;
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  white-space: pre-wrap; /* wraps below if too long */
+}
+
+.item-status {
+  align-items: center;
+  display: flex;
+  cursor: pointer;
+  height: 15px;
+  font-size: 15px;
+  width: 10%;
+  justify-content: center;
+}
+
+/* ===================== Food Summary ===================== */
+#food-summary {
+  position: fixed;
+  top: 82px;
+  right: 2px;
+  width: 20.5%;
+  height: 85vh;
+  overflow-y: auto;
+  background: var(--card);
+  padding: 6px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.food-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.food-item:last-child {
+  border-bottom: none;
+}

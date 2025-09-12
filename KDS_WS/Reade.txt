@@ -1,0 +1,1112 @@
+i have a bigger task for u
+in this KDS
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KDS</title>
+    <link rel="stylesheet" href="KDS.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <img id="logo" src="data/logo.png" />
+      <h1>KDS</h1>
+      <div id="clock">00:00:00</div>
+    </header>
+
+    <!-- Controls -->
+    <div id="controls">
+      <div id="sort-buttons" class="control-block">
+        <button id="sort-time">Sort by Time</button>
+        <button id="sort-table">Sort by Table</button>
+      </div>
+
+      <!-- View Toggle Buttons -->
+      <div id="view-buttons" class="control-block">
+        <button id="view-kot" class="active">KOT View</button>
+        <button id="view-item">Item View</button>
+      </div>
+
+      <div id="filter-checkboxes" class="control-block">
+        <label><input type="checkbox" value="Pending" checked /> Pending</label>
+        <label><input type="checkbox" value="Ready" checked /> Ready</label>
+        <label
+          ><input type="checkbox" value="Delivered" checked /> Delivered</label
+        >
+      </div>
+    </div>
+
+    <!-- Tickets Grid -->
+    <div class="ticket-grid" id="tickets"></div>
+
+    <!-- Food Summary -->
+    <div id="food-summary">
+      <h1>Items</h1>
+    </div>
+
+    <!-- Sound -->
+    <audio id="new-ticket-sound" src="new_ticket.mp3" preload="auto"></audio>
+
+    <script src="KDS.js"></script>
+  </body>
+</html>
+
+
+/* ===================== Root & Variables ===================== */
+:root {
+  --bg: #f4f4f5;
+  --card: #ffffff;
+  --muted: #6c757d;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius: 7px;
+  --gap: 5px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    sans-serif;
+
+  --header-bg: #1f2937;
+  --header-color: #ffffff;
+
+  --btn-primary: #0b5cff;
+  --btn-hover: #0a4bcc;
+
+  --status-preparing: #f59e0b;
+  --status-ready: #16a34a;
+  --status-delivered: #374151;
+}
+
+/* ===================== Global Styles ===================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: #111827;
+}
+
+/* ===================== Header ===================== */
+header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--header-bg);
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+#logo {
+  position: absolute;
+  left: 20px;
+  height: 40px;
+}
+
+header h1 {
+  color: var(--header-color);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+#clock {
+  position: absolute;
+  right: 20px;
+  font-size: 14px;
+  color: var(--header-color);
+  font-weight: 500;
+}
+
+/* ===================== Controls ===================== */
+#controls {
+  display: flex;
+  gap: 12px;
+  padding: 2px 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-block {
+  border: solid 1px #ccc;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--card);
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+#sort-buttons button {
+  background: var(--btn-primary);
+  color: white;
+  border: none;
+  padding: 3px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s;
+}
+
+#sort-buttons button:hover {
+  background: var(--btn-hover);
+}
+#view-buttons button {
+  background: #0b5cff;
+  color: white;
+  border: none;
+  padding: 3px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+#view-buttons button.active {
+  background: #0a4bcc;
+}
+
+#view-buttons button:hover {
+  background: #0a4bcc;
+}
+
+#filter-checkboxes {
+  margin-left: auto;
+}
+
+#filter-checkboxes label {
+  font-size: 12px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+#filter-checkboxes input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--btn-primary);
+}
+
+/* ===================== Ticket Grid Masonry ===================== */
+.ticket-grid {
+  column-count: 3;
+  column-gap: var(--gap);
+  padding: 0px 3px;
+  width: 79%;
+}
+
+.ticket {
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: var(--gap);
+}
+
+/* ===================== Ticket Card ===================== */
+.ticket {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 4px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ticket:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ticket-items {
+  font-weight: 650;
+}
+
+.ticket-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 3px;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+}
+
+.ticket-item:last-child {
+  border-bottom: none;
+  margin-bottom: 6px;
+  padding-bottom: 0;
+}
+
+#ticket_new {
+  background-color: lightblue; /* light yellow */
+  border-color: #fbbf24; /* orange border */
+}
+
+#ticket_accepted {
+  background-color: #e6ffed;
+  border-color: #22c55e;
+}
+
+.item-name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 90%;
+}
+
+.item-comment {
+  font-size: 11px;
+  color: #6c757d;
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  white-space: pre-wrap; /* wraps below if too long */
+}
+
+.item-status {
+  align-items: center;
+  display: flex;
+  cursor: pointer;
+  height: 15px;
+  font-size: 15px;
+  width: 10%;
+  justify-content: center;
+}
+
+/* ===================== Food Summary ===================== */
+#food-summary {
+  position: fixed;
+  top: 82px;
+  right: 2px;
+  width: 20.5%;
+  height: 85vh;
+  overflow-y: auto;
+  background: var(--card);
+  padding: 6px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.food-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.food-item:last-child {
+  border-bottom: none;
+}  
+
+
+// ==================== Constants & State ====================
+const STATUS_MAP = ["Pending", "Ready", "Delivered"];
+let tickets = [];
+let filters = { Pending: true, Ready: true, Delivered: true };
+let sortBy = "time";
+let lastTicketIds = new Set();
+let currentView = "KOT"; // "KOT" or "ITEM"
+
+// ==================== Elements ====================
+const ticketContainer = document.getElementById("tickets");
+const foodSummaryEl = document.getElementById("food-summary");
+const sound = document.getElementById("new-ticket-sound");
+
+// ==================== Clock ====================
+function startClock() {
+  const clockEl = document.getElementById("clock");
+  setInterval(() => {
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString();
+  }, 1000);
+}
+startClock();
+
+// ==================== WebSocket ====================
+const wsHost = window.location.hostname; // automatically gets IP on other PCs
+const ws = new WebSocket(`ws://${wsHost}:9998`);
+ws.onopen = () => console.log("✅ WS Connected");
+
+ws.onmessage = (msg) => {
+  const data = JSON.parse(msg.data);
+  const ticketsData = data.tickets || [];
+  const summaryData = data.summary || [];
+
+  tickets = ticketsData;
+  renderTickets();
+
+  foodSummaryEl.innerHTML = summaryData
+    .map(
+      (item) =>
+        `<div class="food-item">
+           <span class="food-name">${item.name}</span>
+           <span class="food-qty">${item.qty}</span>
+         </div>`
+    )
+    .join("");
+
+  const currentIds = new Set(ticketsData.map((t) => t.kot_no));
+  const newTickets = ticketsData.filter((t) => !lastTicketIds.has(t.kot_no));
+  if (newTickets.length > 0) {
+    try {
+      sound.play();
+    } catch {}
+  }
+  lastTicketIds = currentIds;
+};
+
+// ==================== Filters ====================
+document.querySelectorAll("#filter-checkboxes input").forEach((cb) => {
+  cb.addEventListener("change", () => {
+    filters[cb.value] = cb.checked;
+    renderTickets();
+  });
+});
+
+// ==================== Sorting ====================
+document.getElementById("sort-time").addEventListener("click", () => {
+  sortBy = "time";
+  renderTickets();
+});
+document.getElementById("sort-table").addEventListener("click", () => {
+  sortBy = "table";
+  renderTickets();
+});
+
+// ==================== View Toggle ====================
+document.getElementById("view-kot").addEventListener("click", () => {
+  currentView = "KOT";
+  document.getElementById("view-kot").classList.add("active");
+  document.getElementById("view-item").classList.remove("active");
+  renderTickets();
+});
+document.getElementById("view-item").addEventListener("click", () => {
+  currentView = "ITEM";
+  document.getElementById("view-item").classList.add("active");
+  document.getElementById("view-kot").classList.remove("active");
+  renderTickets();
+});
+
+// ==================== Render Tickets ====================
+function renderTickets() {
+  const sorted = [...tickets];
+
+  if (sortBy === "time")
+    sorted.sort((a, b) => new Date(a.created_on) - new Date(b.created_on));
+  if (sortBy === "table") sorted.sort((a, b) => a.table_no - b.table_no);
+
+  ticketContainer.innerHTML = "";
+
+  sorted.forEach((ticket) => {
+    const filteredItems = ticket.items.filter((it) => filters[it.status]);
+    if (filteredItems.length === 0) return;
+
+    // ITEM View: create separate tickets for each item
+    const itemsToRender =
+      currentView === "ITEM" ? filteredItems : [filteredItems];
+
+    itemsToRender.forEach((itemArr) => {
+      const ticketEl = document.createElement("div");
+      ticketEl.className = "ticket";
+      ticketEl.dataset.kot = ticket.kot_no;
+      ticketEl.dataset.bill = ticket.bill_no ?? "";
+
+      // Set ticket CSS based on ack_status
+      const allAck = ticket.items.every((it) => it.ack_status === 1);
+      ticketEl.id = allAck ? "ticket_accepted" : "ticket_new";
+
+      // ITEM view: only show 1 item
+      const itemsHtml = (currentView === "ITEM" ? [itemArr] : itemArr)
+        .map((it) => {
+          const commentText = it.comment || ticket.Comments || ""; // fetch item-level comment or KOT-level comment
+          return `<div class="ticket-item">
+                <div class="item-name">
+                  ${it.name}
+                  ${
+                    commentText
+                      ? `<span class="item-comment">${
+                          commentText === "spicy" ? "🌶🌶" : commentText
+                        }</span>`
+                      : ""
+                  }
+                </div>
+                <div>${it.qty}</div>
+                <div class="item-status" onclick="toggleItem('${
+                  ticket.kot_no
+                }','${ticket.bill_no}','${it.i_code}')">
+                  ${
+                    it.status === "Pending"
+                      ? "⏳"
+                      : it.status === "Ready"
+                      ? "✅"
+                      : "📦"
+                  }
+                </div>
+              </div>`;
+        })
+        .join("");
+
+      ticketEl.innerHTML = `
+        <div class="ticket-header">
+          <div>#${ticket.kot_no} | Tbl ${ticket.table_no}</div>
+          <div class="ticket-timer">00:00</div>
+        </div>
+        <div class="ticket-items">${itemsHtml}</div>
+      `;
+
+      ticketContainer.appendChild(ticketEl);
+
+      // ==================== Ticket Click for ACK ====================
+      ticketEl.addEventListener("click", (e) => {
+        if (e.target.classList.contains("item-status")) return; // skip item clicks
+
+        ticket.items.forEach((it) => (it.ack_status = 1));
+        ticketEl.id = "ticket_accepted"; // update CSS immediately
+
+        ws.send(
+          JSON.stringify({
+            action: "ack_ticket",
+            kot_no: ticket.kot_no,
+            bill_no: ticket.bill_no ?? "",
+          })
+        );
+      });
+
+      const timerEl = ticketEl.querySelector(".ticket-timer");
+      const updateTimer = () => {
+        const createdTime = new Date(ticket.created_on);
+        const diffMs = new Date() - createdTime;
+        const minutes = Math.floor(diffMs / 60000);
+        const seconds = Math.floor((diffMs % 60000) / 1000);
+        timerEl.textContent = `${minutes.toString().padStart(2, "0")}:${seconds
+          .toString()
+          .padStart(2, "0")}`;
+
+        let color = "grey";
+        if (minutes > 10) color = "#e0474c";
+        else if (minutes > 5) color = "#f97316";
+
+        ticketEl.querySelector(".ticket-header").style.background = color;
+        ticketEl.style.border = `1px solid ${color}`;
+      };
+
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    });
+  });
+}
+
+// ==================== Toggle Item ====================
+function toggleItem(kot_no, bill_no, i_code) {
+  ws.send(JSON.stringify({ action: "toggle_item", kot_no, bill_no, i_code }));
+}
+
+
+
+i want same header & sidebar &  modal as this one 
+
+KDS_DEL
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KDS Delivery</title>
+    <link rel="stylesheet" href="KDS_DEL.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div id="hamburger">☰</div>
+      <h1>KDS Delivery</h1>
+      <div id="kot-count">No. of KOT = 0</div>
+      <div id="clock">00:00:00</div>
+    </header>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <ul>
+        <li id="dashboard-btn">Dashboard</li>
+        <li id="config">Configure</li>
+        <li id="current-kds">KDS: NONE</li>
+      </ul>
+    </div>
+
+    <!-- Ticket Grid -->
+    <div id="ticket-container" class="ticket-grid"></div>
+
+    <!-- Config/Login Modal -->
+    <div id="config-modal">
+      <div id="config-modal-content">
+        <h2>Set KDS Name</h2>
+        <input type="text" id="login-id" placeholder="Enter ID" />
+        <input type="password" id="login-pwd" placeholder="Enter Password" />
+        <input type="text" id="kds-name-input" placeholder="KDS NAME" />
+        <button id="config-submit">Save</button>
+      </div>
+    </div>
+
+    <script src="KDS_DEL.js"></script>
+  </body>
+</html>
+
+
+/* ===================== Root & Variables ===================== */
+:root {
+  --bg: #f4f4f5;
+  --card: #ffffff;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius: 7px;
+  --gap: 5px;
+
+  /* --status-ready: #16a34a; */
+  --status-pending: #f87171;
+}
+
+/* ===================== Global Styles ===================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: #111827;
+}
+
+/* ===================== Header ===================== */
+header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 10px;
+  background: #1f2937; /* dark bg */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+/* ===================== Hamburger ===================== */
+#hamburger {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 28px;
+  cursor: pointer;
+  color: white;
+  z-index: 1001;
+}
+
+#kot-count {
+  position: absolute;
+  left: 60px;
+  font-size: 14px;
+  color: white;
+  font-weight: 500;
+}
+
+header h1 {
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+#clock {
+  position: absolute;
+  right: 20px;
+  font-size: 14px;
+  color: white;
+  font-weight: 500;
+  font-family: monospace;
+}
+
+h1 {
+  color: #111827;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* ===================== Sidebar ===================== */
+#sidebar {
+  position: fixed;
+  left: -250px; /* hidden initially */
+  top: 0;
+  width: 250px;
+  height: 100%;
+  background: #1f2937; /* dark gray */
+  color: white;
+  padding-top: 60px;
+  transition: left 0.3s ease;
+  z-index: 1000;
+}
+
+#sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+#sidebar ul li {
+  padding: 15px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+#sidebar ul li:hover {
+  background: #374151; /* darker on hover */
+}
+
+/* ===================== Config/Login Modal ===================== */
+#config-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+#config-modal-content {
+  background: white;
+  padding: 25px 20px;
+  border-radius: 10px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+#config-modal-content input {
+  width: 90%;
+  padding: 8px;
+  margin: 10px 0;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+#config-modal-content button {
+  padding: 8px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+#config-modal-content button:hover {
+  background: #1e40af;
+}
+
+/* ===================== Ticket Grid ===================== */
+.ticket-grid {
+  column-count: 4;
+  column-gap: var(--gap);
+  padding: 10px;
+  width: 100%;
+}
+
+/* ===================== Ticket Card ===================== */
+.ticket {
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: var(--gap);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 6px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s;
+  cursor: pointer;
+}
+
+.ticket:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Ticket header */
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  background: #374151; /* default bg for header */
+}
+
+/* Ticket items */
+.ticket-items {
+  font-weight: 500;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.ticket-item:last-child {
+  border-bottom: none;
+}
+
+/* Ticket status backgrounds */
+.ticket.pending {
+  background-color: #ffccd0; /* Red for Pending */
+  border: solid red 1px;
+}
+.ticket.partial {
+  background-color: #ffe8a2; /* Orange for Partial */
+  border: solid orange 1px;
+}
+.ticket.ready {
+  background-color: #b8ffc9; /* Green for Ready */
+  border: solid green 1px;
+}
+
+.ticket-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.item-name {
+  flex: 1;
+}
+
+.item-qty {
+  margin-left: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 1200px) {
+  .ticket-grid {
+    column-count: 3;
+  }
+}
+@media (max-width: 900px) {
+  .ticket-grid {
+    column-count: 2;
+  }
+}
+@media (max-width: 600px) {
+  .ticket-grid {
+    column-count: 1;
+  }
+}
+
+
+const wsHost = window.location.hostname; // automatically gets IP on other PCs
+const ws = new WebSocket(`ws://${wsHost}:9998`);
+ws.onopen = () => {
+  const kdsName = localStorage.getItem("kds_name") || "NONE";
+  ws.send(JSON.stringify({ action: "init_kds", kds_name: kdsName }));
+};
+
+const ticketContainer = document.getElementById("ticket-container");
+const kotCountEl = document.getElementById("kot-count");
+
+// ==================== Live Clock ====================
+function updateClock() {
+  const clockEl = document.getElementById("clock");
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  clockEl.textContent = `${hh}:${mm}:${ss}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ==================== Sound ====================
+// const ticketSound = new Audio("new_ticket.mp3");
+const previousStatuses = {}; // track previous ticketstatus by KOT_NO
+
+// ---------- LOGIN & SIDEBAR ----------
+let loggedIn = localStorage.getItem("kds_logged_in") === "true"; // persist login
+let kdsName = localStorage.getItem("kds_name") || ""; // saved KDS name
+
+const hamburger = document.getElementById("hamburger");
+const sidebar = document.getElementById("sidebar");
+
+// ---------- LOGIN PROMPT ----------
+function promptLogin() {
+  const id = prompt("Enter ID:", "");
+  const pwd = prompt("Enter Password:", "");
+  if (id === "abc" && pwd === "abc") {
+    localStorage.setItem("kds_logged_in", "true");
+    loggedIn = true;
+    alert("✅ Login Successful");
+  } else {
+    alert("❌ Wrong credentials");
+  }
+}
+
+// ---------- SIDEBAR TOGGLE ----------
+function toggleSidebar() {
+  if (!loggedIn) {
+    promptLogin();
+    if (!loggedIn) return; // stop if login failed
+  }
+  sidebar.style.left = sidebar.style.left === "0px" ? "-250px" : "0px";
+}
+
+hamburger.onclick = toggleSidebar;
+
+// ---------- CONFIG MODAL ----------
+const configBtn = document.getElementById("config");
+const configModal = document.getElementById("config-modal");
+const configSubmit = document.getElementById("config-submit");
+const kdsInput = document.getElementById("kds-name-input");
+const loginIdInput = document.getElementById("login-id");
+const loginPwdInput = document.getElementById("login-pwd");
+
+// Open modal
+configBtn.onclick = () => {
+  kdsInput.value = kdsName; // prefill current name
+  configModal.style.display = "flex";
+};
+
+// Handle config save
+configSubmit.onclick = () => {
+  const enteredId = loginIdInput.value.trim();
+  const enteredPwd = loginPwdInput.value.trim();
+  const newKds = kdsInput.value.trim();
+
+  // Check credentials
+  if (enteredId === "abc" && enteredPwd === "abc") {
+    loggedIn = true;
+    localStorage.setItem("kds_logged_in", "true"); // persist login
+
+    // Save KDS name permanently in localStorage
+    if (newKds !== "") {
+      kdsName = newKds;
+      localStorage.setItem("kds_name", kdsName);
+    }
+
+    alert("✅ Login Successful");
+    configModal.style.display = "none"; // close modal
+  } else {
+    alert("❌ Wrong ID or Password");
+  }
+};
+
+// Close modal if clicking outside content
+configModal.onclick = (e) => {
+  if (e.target === configModal) configModal.style.display = "none";
+};
+
+// ==================== Render Tickets ====================
+function renderTickets(tickets) {
+  tickets.sort((a, b) => a.kot_no - b.kot_no);
+  ticketContainer.innerHTML = "";
+
+  // Update KOT count
+  kotCountEl.textContent = `No. of KOT = ${tickets.length}`;
+
+  tickets.forEach((ticket) => {
+    const ticketEl = document.createElement("div");
+    ticketEl.classList.add("ticket");
+
+    // ===== ticket status logic (0 = Pending, 1 = Partial, 2 = Ready) =====
+    const totalItems = ticket.items.length;
+    const readyItems = ticket.items.filter(
+      (i) => Number(i.ready_status) === 1
+    ).length;
+
+    let ticketStatus = 0; // default Pending
+    if (totalItems > 0 && readyItems === totalItems)
+      ticketStatus = 2; // all ready -> green
+    else if (readyItems > 0) ticketStatus = 1; // some ready -> orange
+
+    // apply class
+    ticketEl.classList.add(
+      ticketStatus === 2 ? "ready" : ticketStatus === 1 ? "partial" : "pending"
+    );
+
+    // Play sound if ticket becomes Partial or Ready
+    if (
+      (ticketStatus === 1 && previousStatuses[ticket.kot_no] !== 1) ||
+      (ticketStatus === 2 && previousStatuses[ticket.kot_no] !== 2)
+    ) {
+      // ticketSound.play().catch(() => {});
+    }
+    previousStatuses[ticket.kot_no] = ticketStatus;
+
+    // Ticket Header
+    const ticketHeader = document.createElement("div");
+    ticketHeader.classList.add("ticket-header");
+    ticketHeader.innerHTML = `
+      #${ticket.kot_no} | ${ticket.bill_type} ${ticket.table_no}  
+      <span class="cds-status" style="float:right">
+        ${ticketStatus === 2 ? "Ready" : ticketStatus === 1 ? "Partial" : ""}
+      </span>
+    `;
+
+    let itemsHtml = "";
+    ticket.items.forEach((item) => {
+      let itemBg = "#f8d7da"; // pending (red)
+      if (item.status === "Delivered") itemBg = "#cce5ff"; // delivered -> blue
+      else if (item.status === "Ready") itemBg = "#d4edda"; // ready -> green
+      else if (Number(item.ready_status) === 1) itemBg = "#fff3cd"; // marked ready -> yellow
+
+      itemsHtml += `
+        <div class="ticket-item" style="background:${itemBg}">
+          <div class="item-name">${item.name}</div>
+          <div class="item-qty">${item.qty}</div>
+        </div>
+      `;
+    });
+
+    const itemsContainer = document.createElement("div");
+    itemsContainer.classList.add("ticket-items");
+    itemsContainer.innerHTML = itemsHtml;
+
+    ticketEl.appendChild(ticketHeader);
+    ticketEl.appendChild(itemsContainer);
+
+    // Click Event — backend will run your procedure
+    ticketEl.onclick = () => {
+      const allPending = ticket.items.every(
+        (i) => Number(i.ready_status) === 0 && i.status !== "Ready"
+      );
+
+      if (allPending) {
+        alert("No Orders Ready");
+        return; // do not send websocket message
+      }
+      ws.send(
+        JSON.stringify({
+          action: "toggle_ticket",
+          kot_no: ticket.kot_no,
+          bill_no: ticket.bill_no,
+          items: ticket.items,
+          table_no: ticket.table_no,
+          ticketstatus: ticket.ticketstatus,
+          ready_date: ticket.ready_date || "",
+          stwd: ticket.stwd || "",
+        })
+      );
+    };
+
+    ticketContainer.appendChild(ticketEl);
+  });
+}
+
+// ==================== WebSocket Message Handler ====================
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("Tickets received:", data.tickets); // debug
+  if (data.tickets) renderTickets(data.tickets);
+};
+
+- the KDS should also store value of kds_name & pass it to the server
+when fetching if both can't have same name then change the kds_del one to kds_del_name
+
+- in the server.py side KDS should take data /render tickets from procedure
+USP_Get_KDS_Data @KDS=KDS_NAME 
+
+-the KDS tickets should have same logic[just diff. procedure] as KDS_DEL -> when clicking on the ticket the procedure
+CREATE PROCEDURE dbo.USP_Accept_KDS            
+(            
+    @KOT_NO BIGINT,            
+    @I_Code VARCHAR(30),            
+    @Bill_NO BIGINT            
+)            
+AS            
+BEGIN            
+    SET NOCOUNT ON;    
+  
+    -- First check if Bill exists in tbl_TempKot  
+    IF EXISTS (SELECT 1 FROM tbl_TempKot WHERE BillNO = @Bill_NO)  
+    BEGIN  
+        DECLARE @AlreadyAckedKot BIT;  
+        SELECT @AlreadyAckedKot = CASE WHEN ack_status = 1 THEN 1 ELSE 0 END  
+        FROM tbl_TempKot  
+        WHERE KOT_NO = @KOT_NO AND I_Code = @I_Code AND BillNO = @Bill_NO;  
+  
+        IF @AlreadyAckedKot = 0  
+        BEGIN  
+            -- First time ACK  
+            UPDATE tbl_TempKot  
+            SET ack_status = 1,  
+                ack_date = CONVERT(VARCHAR(19), GETDATE(), 120)  
+            WHERE KOT_NO = @KOT_NO AND I_Code = @I_Code AND BillNO = @Bill_NO;  
+        END  
+        ELSE  
+        BEGIN  
+            -- Already acked → set order_status  
+            UPDATE tbl_TempKot  
+            SET order_status = 1  
+            WHERE KOT_NO = @KOT_NO AND I_Code = @I_Code AND BillNO = @Bill_NO;  
+        END  
+    END  
+    ELSE  
+    BEGIN  
+        -- No record in tbl_TempKot → apply same logic to tbl_Bill_Tran  
+        DECLARE @AlreadyAckedTran BIT;  
+        SELECT @AlreadyAckedTran = CASE WHEN ack_status = 1 THEN 1 ELSE 0 END  
+        FROM tbl_Bill_Tran  
+        where KOT_NO=@KOT_NO and Item_Code=@I_Code and Bill_No_FK=@Bill_NO   
+  
+        IF @AlreadyAckedTran = 0  
+        BEGIN  
+            -- First time ACK in tbl_Bill_Tran  
+            UPDATE tbl_Bill_Tran  
+            SET ack_status = 1,  
+                ack_date = CONVERT(VARCHAR(19), GETDATE(), 120)  
+            where KOT_NO=@KOT_NO and Item_Code=@I_Code and Bill_No_FK=@Bill_NO   
+        END  
+        ELSE  
+        BEGIN  
+            -- Already acked → set order_status_tran  
+            UPDATE tbl_Bill_Tran  
+            SET order_status_tran = 1  
+            where KOT_NO=@KOT_NO and Item_Code=@I_Code and Bill_No_FK=@Bill_NO   
+        END  
+    END  
+END;  
+ 
+should run for each item in that ticket
+- when the toggleable icon i clicked the procdure will only run on that respective item
+
+- if the item in the ticket have their ack_status in db as NULL then the togglable item status is pending, togglable should show ⏳
+- if ack_status is 1 & and the order_status is null/0 then item status is Ready, toggleable should show ✅ 
+- now pay attention is item status is ready & it is clicked again
+- the icon becums 📦 instant but  it triggers the procedure after 3 seconds
+
+tickets should also follow same flow as KDS_DEL
+- by default ticket status is pending
+- if all items in the tickets r ready then if ticket status is ready and it's bgcolor is green
+- if all 
+

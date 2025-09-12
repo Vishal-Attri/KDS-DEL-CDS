@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KDS Delivery</title>
+    <link rel="stylesheet" href="KDS_DEL.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div id="hamburger">☰</div>
+      <h1>KDS Delivery</h1>
+      <div id="kot-count">No. of KOT = 0</div>
+      <div id="clock">00:00:00</div>
+    </header>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <ul>
+        <li id="dashboard-btn">Dashboard</li>
+        <li id="config">Configure</li>
+        <li id="current-kds">KDS: NONE</li>
+      </ul>
+    </div>
+
+    <!-- Ticket Grid -->
+    <div id="ticket-container" class="ticket-grid"></div>
+
+    <!-- Config/Login Modal -->
+    <div id="config-modal">
+      <div id="config-modal-content">
+        <h2>Set KDS Name</h2>
+        <input type="text" id="login-id" placeholder="Enter ID" />
+        <input type="password" id="login-pwd" placeholder="Enter Password" />
+        <input type="text" id="kds-name-input" placeholder="KDS NAME" />
+        <button id="config-submit">Save</button>
+      </div>
+    </div>
+
+    <script src="KDS_DEL.js"></script>
+  </body>
+</html>
