@@ -28,17 +28,17 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 10px;
-  background: #1f2937; /* dark bg */
+  padding: 6px 10px;
+  background: #33455e; /* dark bg */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   position: relative;
+  height: 45px;
 }
 
 /* ===================== Hamburger ===================== */
 #hamburger {
   position: absolute;
   left: 10px;
-  top: 10px;
   font-size: 28px;
   cursor: pointer;
   color: white;

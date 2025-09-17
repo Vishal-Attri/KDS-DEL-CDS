@@ -6,13 +6,12 @@
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --radius: 7px;
   --gap: 5px;
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
-    sans-serif;
+  --font: Arial, sans-serif;
 
-  --header-bg: #1f2937;
+  --header-bg: #33455e;
   --header-color: #ffffff;
 
-  --btn-primary: #0b5cff;
+  --btn-primary: #9cbdff;
   --btn-hover: #0a4bcc;
 
   --status-preparing: #f59e0b;
@@ -38,17 +37,17 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 10px;
-  background: #1f2937; /* dark bg */
+  padding: 6px 10px;
+  background: #33455e; /* dark bg */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   position: relative;
+  height: 45px;
 }
 
 /* ===================== Hamburger ===================== */
 #hamburger {
   position: absolute;
   left: 10px;
-  top: 10px;
   font-size: 28px;
   cursor: pointer;
   color: white;
@@ -163,7 +162,7 @@ h1 {
 #controls {
   display: flex;
   gap: 12px;
-  padding: 2px 12px;
+  padding: 4px 12px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -171,49 +170,67 @@ h1 {
 .control-block {
   border: solid 1px #ccc;
   display: flex;
+  max-height: fit-content;
   gap: 8px;
   align-items: center;
   background: var(--card);
-  padding: 3px 6px;
   border-radius: var(--radius);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
+/* --- NEW Unified Button Styling --- */
+.control-block button,
+#toggle-summary-btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+/* Active */
+.control-block button.active,
+#toggle-summary-btn.active {
+  background: #16a34a; /* green */
+  /* transform: scale(1.05); */
+}
+
+label {
+  font-size: 12px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+/* Sort Buttons */
 #sort-buttons button {
-  background: var(--btn-primary);
-  color: white;
-  border: none;
-  padding: 3px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 15px;
-  transition: background 0.2s;
-}
-
-#sort-buttons button:hover {
-  background: var(--btn-hover);
-}
-#view-buttons button {
-  background: #0b5cff;
-  color: white;
-  border: none;
-  padding: 3px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+  max-height: 27px;
   font-size: 14px;
-  transition: background 0.2s;
 }
 
-#view-buttons button.active {
-  background: #0a4bcc;
+/* View Buttons */
+/* Default KOT view (blue) */
+#view-btn.kot-view {
+  background-color: #2563eb; /* blue */
+  color: white;
 }
 
-#view-buttons button:hover {
-  background: #0a4bcc;
+/* Item view (green) */
+#view-btn.item-view {
+  background-color: rgb #28a745 (40, 167, 69);
+  color: white;
 }
 
+/* Filter Checkboxes */
 #filter-checkboxes {
   margin-left: auto;
 }
@@ -225,6 +242,12 @@ h1 {
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+#filter-checkboxes label.active {
+  background: #dbeafe; /* light blue highlight */
 }
 
 #filter-checkboxes input {
@@ -235,26 +258,27 @@ h1 {
 
 /* ===================== Ticket Grid Masonry ===================== */
 .ticket-grid {
-  column-count: 3;
+  column-count: 4;
   column-gap: var(--gap);
-  padding: 0px 3px;
+  padding: 4px 8px;
   width: 79%;
-}
-
-.ticket {
-  break-inside: avoid;
-  display: inline-block;
-  width: 100%;
-  margin-bottom: var(--gap);
+  overflow-y: auto;
 }
 
 /* ===================== Ticket Card ===================== */
 .ticket {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: var(--gap);
   background: var(--card);
   border-radius: var(--radius);
   padding: 4px;
   box-shadow: var(--shadow);
+  font-weight: bolder;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
 }
 
 .ticket:hover {
@@ -270,70 +294,152 @@ h1 {
   padding: 5px 10px;
   border-radius: var(--radius);
   color: white;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
+  background: #374151;
+}
+
+.ticket-header.dine-in {
+  background: rgb(255, 121, 143); /* blue */
+}
+
+.ticket-header.take-away {
+  background: #198754; /* green */
+}
+
+.ticket-header.delivery {
+  background: #fd7e14; /* orange */
+}
+
+.ticket-header.table-billing {
+  background: #7e7ef3; /* purple */
 }
 
 .ticket-items {
-  font-weight: 650;
+  font-weight: 500;
+  font-size: 13px;
+  margin-top: 4px;
 }
 
 .ticket-item {
+  -webkit-font-smoothing: antialiased;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  list-style: none;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: rgb(102, 102, 102);
+  font-weight: bolder;
+  text-decoration: none;
   display: flex;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   align-items: center;
-  padding: 8px 3px;
-  border-bottom: 1px dotted rgba(0, 0, 0, 0.3);
-  font-size: 13px;
+  padding: 5px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  border-bottom: dashed 1px;
+  /* border: solid 1px rgb(235, 235, 235); */
+  background-color: inherit;
 }
 
-.ticket-item:last-child {
-  border-bottom: none;
-  margin-bottom: 6px;
-  padding-bottom: 0;
+.ticket-acked {
+  background: #d1fae5 !important; /* light green */
 }
 
-#ticket_new {
-  background-color: lightblue; /* light yellow */
-  border-color: #fbbf24; /* orange border */
+/* .ticket-wait-grey {
+  background-color: transparent !important;
+  border: 1px solid rgb(204, 204, 204);
+  border-radius: 12px;
+  transition: border 0.3s;
+} */
+
+.ticket-wait-orange {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  /* padding: 0.75rem;
+  margin-bottom: 10px; */
+  flex-direction: column;
+  background-color: lightyellow !important;
+  border: 2px solid orange;
+  border-radius: 12px;
+  transition: border 0.3s;
+}
+
+.ticket-wait-red {
+  background-color: rgb(250, 217, 217) !important;
+  border: 2px solid red; /* dark red */
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  /* padding: 0.75rem;
+  margin-bottom: 10px; */
+  flex-direction: column;
+  border-radius: 12px;
+  transition: border 0.3s;
+}
+
+/* #ticket_new {
+  background-color: white;
+  border-color: #fbbf24;
 }
 
 #ticket_accepted {
-  background-color: #e6ffed;
-  border-color: #22c55e;
-}
+  background-color: #d4edda;
+  border-color: #22c55e; */
+/* } */
 
 .item-name {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  width: 90%;
+  width: 85%;
 }
 
 .item-comment {
   font-size: 11px;
-  color: #6c757d;
+  color: #0088ff;
   background: #f3f4f6;
   padding: 1px 4px;
   border-radius: 3px;
   margin-left: 4px;
-  white-space: pre-wrap; /* wraps below if too long */
+  white-space: pre-wrap;
+}
+
+.item-qty {
+  width: 5%;
+  gap: 2px;
 }
 
 .item-status {
   align-items: center;
   display: flex;
   cursor: pointer;
-  height: 15px;
-  font-size: 15px;
+  font-size: 17px;
   width: 10%;
   justify-content: center;
+}
+.status-icon,
+.comment-icon {
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.ticket-separator {
+  border: 1px dotted #999;
+  margin: 4px 0;
+}
+.ticket-timer {
+  text-align: center;
+  font-size: 15px;
+  margin-top: 2px;
+  text-align: center;
+  margin-top: 4px;
+  padding: 8px;
+  font-weight: 700;
 }
 
 /* ===================== Food Summary ===================== */
 #food-summary {
   position: fixed;
-  top: 82px;
+  top: 102px;
   right: 2px;
   width: 20.5%;
   height: 85vh;
@@ -355,4 +461,78 @@ h1 {
 
 .food-item:last-child {
   border-bottom: none;
+}
+
+/* ===================== Popup ===================== */
+#kds-popup {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.98);
+  background: rgba(9, 77, 73, 0.7);
+  color: orange;
+  padding: 14px 18px;
+  border-radius: 1px;
+  font-weight: 700;
+  font-size: 35dpx;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+#kds-popup.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+/* ===================== Summary toggle handling ===================== */
+.summary-hidden #food-summary {
+  display: none !important;
+}
+.summary-hidden .ticket-grid,
+.summary-hidden #tickets {
+  width: 100% !important;
+  column-count: 5;
+}
+
+.timer-grey {
+  background: #e0e0e0;
+}
+.timer-orange {
+  background: #ffe0b2;
+}
+.timer-red {
+  background: #ffcdd2;
+}
+
+/* ===================== Item-level status backgrounds ===================== */
+/* .ticket-item.pending {
+  background-color: white;
+}
+.ticket-item.ready {
+  background-color: #d4edda;
+}
+.ticket-item.delivered {
+  background-color: #cce5ff;
+} */
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .ticket-grid,
+  .summary-hidden .ticket-grid {
+    column-count: 3;
+  }
+}
+@media (max-width: 900px) {
+  .ticket-grid,
+  .summary-hidden .ticket-grid {
+    column-count: 2;
+  }
+}
+@media (max-width: 600px) {
+  .ticket-grid,
+  .summary-hidden .ticket-grid {
+    column-count: 1;
+  }
 }

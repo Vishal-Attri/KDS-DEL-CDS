@@ -14,6 +14,7 @@ const configSubmit = document.getElementById("config-submit");
 const kdsInput = document.getElementById("kds-name-input");
 const loginIdInput = document.getElementById("login-id");
 const loginPwdInput = document.getElementById("login-pwd");
+const currentKdsSidebarEl = document.getElementById("current-kds-sidebar");
 
 // ==================== 3. Live Clock ====================
 function updateClock() {
@@ -33,6 +34,9 @@ const ws = new WebSocket(`ws://${wsHost}:9998`);
 ws.onopen = () => {
   const kdsName = localStorage.getItem("kds_name") || "NONE";
   ws.send(JSON.stringify({ action: "init_kds", kds_name: kdsName }));
+  if (currentKdsSidebarEl) {
+    currentKdsSidebarEl.textContent = `KDS: ${kdsName}`;
+  }
 };
 
 // ==================== 5. Login & Sidebar ====================
@@ -90,7 +94,7 @@ configModal.onclick = (e) => {
 
 // ==================== 7. Render Tickets ====================
 function renderTickets(tickets) {
-  tickets.sort((a, b) => a.kot_no - b.kot_no);
+  tickets.sort((a, b) => b.kot_no - a.kot_no);
   ticketContainer.innerHTML = "";
   kotCountEl.textContent = `No. of KOT = ${tickets.length}`;
 
@@ -163,6 +167,8 @@ function renderTickets(tickets) {
           ticketstatus: ticket.ticketstatus,
           ready_date: ticket.ready_date || "",
           stwd: ticket.stwd || "",
+          order_type: ticket.order_type || "",
+          bill_type: ticket.bill_type || "",
         })
       );
     };

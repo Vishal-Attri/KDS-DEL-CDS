@@ -44,12 +44,15 @@ def print_ticket(ticket):
             return
 
         # --- Fetch all ticket fields safely ---
+        
         kot_no = ticket.get("kot_no", "N/A")
         table_no = ticket.get("table_no", "N/A")
         bill_no = ticket.get("bill_no", "N/A")
         stwd = ticket.get("stwd", "")
         items = ticket.get("items", []) or []
-
+        order_type = ticket.get("order_type", "N/A")
+        bill_type = ticket.get("bill_type", "N/A")
+        bill_type = "Table" if bill_type == "Table billing" else bill_type
         # --- Printer DC ---
         pdc = win32ui.CreateDC()
         pdc.CreatePrinterDC(printer_name)
@@ -76,7 +79,10 @@ def print_ticket(ticket):
 
         # --- Header: Bill, KOT, Table ---
         pdc.SelectObject(header_font)
-        table_text = f"TABLE : {table_no}"
+        if bill_type == "Table" :
+            table_text = f"{bill_type} : {table_no}"
+        else :
+            table_text = f"{bill_type}"
         table_width = pdc.GetTextExtent(table_text)[0]
         center_x = (printable_width - table_width) // 2
         pdc.TextOut(center_x, y_start, table_text)
@@ -153,11 +159,11 @@ def print_ticket(ticket):
         print("❌ Print error:", e)
 
 # ------------------- ORIGINAL FETCH TICKETS -------------------
-def fetch_tickets():
+def fetch_tickets(kds_name="NONE"):
     try:
         conn = pyodbc.connect(CONN_STR)
         cursor = conn.cursor()
-        cursor.execute("EXEC dbo.USP_Get_KDS_Data @KDS ='NONE'")
+        cursor.execute("EXEC dbo.USP_Get_KDS_Data @KDS =?", kds_name)
         rows = cursor.fetchall()
         tickets = {}
         for row in rows:
@@ -202,11 +208,11 @@ def fetch_tickets():
         return []
 
 # ------------------- ORIGINAL FOOD SUMMARY -------------------
-def fetch_food_summary():
+def fetch_food_summary(kds_name="NONE"):
     try:
         conn = pyodbc.connect(CONN_STR)
         cursor = conn.cursor()
-        cursor.execute("EXEC dbo.USP_Get_KDS_Summary @KDS='NONE'")
+        cursor.execute("EXEC dbo.USP_Get_KDS_Summary @KDS = ?", kds_name)
         rows = cursor.fetchall()
         summary = [{"name": getattr(row, "I_Name", ""), "qty": getattr(row, "Qty", 0)} for row in rows]
         conn.close()
@@ -216,10 +222,10 @@ def fetch_food_summary():
         return []
 
 # ------------------- CACHE REFRESH FUNCTIONS -------------------
-def refresh_cache():
+def refresh_cache(kds_name="NONE"):
     global cached_tickets, cached_summary
-    cached_tickets = fetch_tickets()
-    cached_summary = fetch_food_summary()
+    cached_tickets = fetch_tickets(kds_name)
+    cached_summary = fetch_food_summary(kds_name)
 
 def refresh_kds_cache(kds_name="NONE"):
     global cached_kds_tickets
@@ -246,20 +252,32 @@ def update_item_status(kot_no, bill_no=None, i_code=None, cancel=False):
             if kot_no is None or bill_no is None or i_code is None:
                 conn.close()
                 return
-            cursor.execute("EXEC dbo.USP_Update_KDS ?, ?, ?", kot_no, str(i_code), bill_no)
+            cursor.execute("EXEC dbo.USP_Accept_kds ?, ?, ?", kot_no, str(i_code), bill_no)
         conn.commit()
         conn.close()
     except Exception as e:
         print("❌ Update Error:", e)
 
 # ------------------- ORIGINAL ACK TICKET -------------------
-def ack_ticket(kot_no, bill_no=None):
+def ack_ticket(kot_no, bill_no=None, items=None):
     try:
+        if not items:
+            print("❌ ACK Error: No items provided for ticket", kot_no)
+            return
+
         conn = pyodbc.connect(CONN_STR)
         cursor = conn.cursor()
-        cursor.execute("EXEC dbo.USP_Accept_KDS @KDS='NONE', @KOT_NO=?", kot_no)
+
+        for item in items:
+            i_code = item.get("i_code")
+            if not i_code:
+                continue
+            cursor.execute("EXEC dbo.USP_Accept_kds ?, ?, ?", kot_no, str(i_code), bill_no)
+
         conn.commit()
         conn.close()
+        print(f"✅ ACK completed for ticket {kot_no} with {len(items)} items")
+
     except Exception as e:
         print("❌ ACK Error:", e)
 
@@ -276,7 +294,11 @@ async def ws_handler(websocket):
     clients.add(websocket)
     print("✅ Client connected")
     try:
-        await websocket.send(json.dumps({"tickets": cached_tickets, "summary": cached_summary}))
+        kds_name = client_kds_map.get(websocket, "NONE")
+        await websocket.send(json.dumps({
+        "tickets": cached_tickets if kds_name == "NONE" else fetch_kds_del_tickets(kds_name),
+        "summary": cached_summary
+        }))
         while True:
             try:
                 message = await asyncio.wait_for(websocket.recv(), timeout=0.1)
@@ -289,8 +311,14 @@ async def ws_handler(websocket):
                     update_item_status(data.get("kot_no"), cancel=True)
                     refresh_cache()
                 elif action == "ack_ticket":
-                    ack_ticket(data.get("kot_no"), data.get("bill_no"))
+                    ack_ticket(data.get("kot_no"), data.get("bill_no"),data.get("items"))
                     refresh_cache()
+                elif action == "init_kds":
+                    kds_name = data.get("kds_name", "NONE")
+                    client_kds_map[websocket] = kds_name
+                    refresh_cache(kds_name)
+                    print(f"Client initialized with KDS: {kds_name}")
+
                 await broadcast_tickets()
             except asyncio.TimeoutError:
                 await asyncio.sleep(0.01)
@@ -403,53 +431,54 @@ async def ws_kds_del_handler(websocket):
     print("✅ KDS_DEL client connected")
 
     try:
+        # Send empty tickets first
+        await websocket.send(json.dumps({"tickets": cached_kds_tickets.get("NONE", [])}))
+
         while True:
-            try:
-                message = await asyncio.wait_for(websocket.recv(), timeout=0.1)
-                data = json.loads(message)
-                action = data.get("action")
+            message = await websocket.recv()
+            data = json.loads(message)
+            action = data.get("action")
 
-                # ---------- Initialize KDS ----------
-                if action == "init_kds":
-                    kds_name = data.get("kds_name", "NONE")
-                    client_kds_map[websocket] = kds_name
+            # ---------- Initialize KDS ----------
+            if action == "init_kds":
+                kds_name = data.get("kds_name", "NONE")
+                client_kds_map[websocket] = kds_name
 
-                    # Ensure cache exists immediately
-                    if kds_name not in cached_kds_tickets:
-                        print(f"🔄 First load: fetching tickets for KDS '{kds_name}'")
-                        cached_kds_tickets[kds_name] = fetch_kds_del_tickets(kds_name)
+                # Fetch tickets first time only
+                refresh_cache(kds_name)
+                cached_kds_tickets[kds_name] = fetch_kds_del_tickets(kds_name)
+            
+                # Send to this client immediately
+                await websocket.send(json.dumps({"tickets": cached_kds_tickets[kds_name]}))
+                continue
 
-                    # Send tickets to this client immediately
-                    tickets = cached_kds_tickets.get(kds_name, [])
-                    await websocket.send(json.dumps({"tickets": tickets}))
+            # ---------- Toggle Ticket ----------
+            if action == "toggle_ticket":
+                kds_name = client_kds_map.get(websocket, "NONE")
+                update_kds_del_ticket(
+                    data.get("kot_no"),
+                    data.get("bill_no"),
+                    data.get("items")
+                )
 
-                    # Refresh cache asynchronously for future updates
-                    async_refresh_kds(kds_name)
-                    continue
+                # Refresh KDS cache only once after update
+                cached_kds_tickets[kds_name] = fetch_kds_del_tickets(kds_name)
+                refresh_cache()
+                try:
+                    kot_to_print = str(data.get("kot_no"))
+                    for t in cached_kds_tickets.get(kds_name, []):
+                        if str(t.get("kot_no")) == kot_to_print:
+                            print_ticket(t)
+                            break
+                except Exception as e:
+                    print("❌ Print-on-toggle error:", e)
 
-                # ---------- Toggle Ticket ----------
-                if action == "toggle_ticket":
-                    update_kds_del_ticket(
-                        data.get("kot_no"),
-                        data.get("bill_no"),
-                        data.get("items")
-                    )
-                    kds_name = client_kds_map.get(websocket, "NONE")
-
-                    # Refresh cache for this KDS
-                    cached_kds_tickets[kds_name] = fetch_kds_del_tickets(kds_name)
-
-                    # Broadcast to all KDS clients
-                    await broadcast_kds_del_tickets()
-                    continue
-
-            except asyncio.TimeoutError:
-                # keep loop alive
-                await asyncio.sleep(0.01)
+                # Broadcast to all KDS clients
+                await broadcast_kds_del_tickets()
+                continue
 
     except websockets.exceptions.ConnectionClosed:
         print("❌ KDS_DEL client disconnected")
-
     finally:
         clients_kds_del.discard(websocket)
         client_kds_map.pop(websocket, None)
@@ -485,9 +514,9 @@ def sql_listener(loop):
                         print(f"🔔 KOT Change: {message_body}")
                         refresh_cache()
                         for kds_name in cached_kds_tickets.keys():
-                            async_refresh_kds(kds_name)
-                        loop.call_soon_threadsafe(lambda: asyncio.create_task(broadcast_tickets()))
-                        loop.call_soon_threadsafe(lambda: asyncio.create_task(broadcast_kds_del_tickets()))
+                            cached_kds_tickets[kds_name] = fetch_kds_del_tickets(kds_name)
+                        loop.call_soon_threadsafe(asyncio.create_task, broadcast_tickets())
+                        loop.call_soon_threadsafe(asyncio.create_task, broadcast_kds_del_tickets())
                     cursor.execute("END CONVERSATION ?", conversation_handle)
                     conn.commit()
         except Exception as e:
@@ -498,6 +527,9 @@ def sql_listener(loop):
 
 # ------------------- MAIN -------------------
 async def main():
+    cached_tickets.clear()
+    cached_summary.clear()
+    cached_kds_tickets.clear()
     refresh_cache()  # preload tickets for first client
     Thread(target=run_http, daemon=True).start()
     print("Testing DB connection...")

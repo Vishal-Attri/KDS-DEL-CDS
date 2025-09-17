@@ -1,15 +1,29 @@
 // ==================== Constants & State ====================
 const STATUS_MAP = ["Pending", "Ready", "Delivered"];
 let tickets = [];
-let filters = { Pending: true, Ready: true, Delivered: true };
+// Dynamically initialize filters from checkboxes
+let filters = {};
+document.querySelectorAll("#filter-checkboxes input").forEach((cb) => {
+  filters[cb.value] = cb.checked;
+});
 let sortBy = "time";
+let cached_tickets = [];
+let cached_summary = {};
+let last_refresh_time = 0;
+let sortAsc = false; // add this line
+
 let lastTicketIds = new Set();
-let currentView = "KOT"; // "KOT" or "ITEM"
+let currentView = "ITEM"; // "KOT" or "ITEM"
 
 // ==================== Elements ====================
 const ticketContainer = document.getElementById("tickets");
 const foodSummaryEl = document.getElementById("food-summary");
 const sound = document.getElementById("new-ticket-sound");
+const kotCountEl = document.getElementById("kot-count");
+const currentKdsSidebarEl = document.getElementById("current-kds-sidebar");
+
+// popup timer handle
+let popupTimer = null;
 
 // ==================== Live Clock ====================
 function updateClock() {
@@ -18,22 +32,34 @@ function updateClock() {
   const hh = String(now.getHours()).padStart(2, "0");
   const mm = String(now.getMinutes()).padStart(2, "0");
   const ss = String(now.getSeconds()).padStart(2, "0");
-  clockEl.textContent = `${hh}:${mm}:${ss}`;
+  if (clockEl) clockEl.textContent = `${hh}:${mm}:${ss}`;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
 // ==================== WebSocket ====================
-const wsHost = window.location.hostname; // automatically gets IP on other PCs
-const ws = new WebSocket(`ws://${wsHost}:9998`);
+const wsHost = window.location.hostname; // automatically gets IP
+const ws = new WebSocket(`ws://${wsHost}:9999`);
+
 ws.onopen = () => {
-  const kdsName = localStorage.getItem("kds_name") || "NONE";
+  // ✅ Auto-initialize KDS name when socket opens
+  kdsName = localStorage.getItem("kds_name");
+  if (!kdsName) {
+    kdsName = "NONE";
+  }
+
+  // Send KDS name to the server after socket connects
   ws.send(JSON.stringify({ action: "init_kds", kds_name: kdsName }));
+
+  // ✅ Also update sidebar right after connecting if KDS name exists
+  if (currentKdsSidebarEl) {
+    currentKdsSidebarEl.textContent = `KDS: ${kdsName}`;
+  }
 };
 
 // ==================== Sidebar & Login ====================
-let loggedIn = localStorage.getItem("kds_logged_in") === "true"; // persist login
-let kdsName = localStorage.getItem("kds_name") || ""; // saved KDS name
+let loggedIn = localStorage.getItem("kds_logged_in") === "true";
+let kdsName = localStorage.getItem("kds_name") || "";
 
 const hamburger = document.getElementById("hamburger");
 const sidebar = document.getElementById("sidebar");
@@ -69,7 +95,7 @@ const loginIdInput = document.getElementById("login-id");
 const loginPwdInput = document.getElementById("login-pwd");
 
 configBtn.onclick = () => {
-  kdsInput.value = kdsName; // prefill current name
+  kdsInput.value = kdsName;
   configModal.style.display = "flex";
 };
 
@@ -85,10 +111,13 @@ configSubmit.onclick = () => {
     if (newKds !== "") {
       kdsName = newKds;
       localStorage.setItem("kds_name", kdsName);
-      document.getElementById("current-kds").textContent = `KDS: ${kdsName}`;
-      document.getElementById(
-        "current-kds-sidebar"
-      ).textContent = `KDS: ${kdsName}`;
+      if (currentKdsSidebarEl)
+        currentKdsSidebarEl.textContent = `KDS: ${kdsName}`;
+
+      // ✅ Re-send KDS name to server after login
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "init_kds", kds_name: kdsName }));
+      }
     }
 
     alert("✅ Login Successful");
@@ -102,32 +131,83 @@ configModal.onclick = (e) => {
   if (e.target === configModal) configModal.style.display = "none";
 };
 
+// ==================== UI Helpers ====================
+function showPopup(text, duration = 3000) {
+  let popup = document.getElementById("kds-popup");
+  if (!popup) {
+    popup = document.createElement("div");
+    popup.id = "kds-popup";
+    document.body.appendChild(popup);
+  }
+  popup.textContent = text;
+  popup.classList.add("visible");
+
+  if (popupTimer) clearTimeout(popupTimer);
+  popupTimer = setTimeout(() => {
+    popup.classList.remove("visible");
+    popupTimer = null;
+  }, duration);
+}
+
+function insertSummaryToggle() {
+  // Insert toggle button left of filters if not already present
+  const controls = document.getElementById("controls");
+  if (!controls) return;
+  const filterBlock = document.getElementById("filter-checkboxes");
+  if (!filterBlock) return;
+  if (document.getElementById("toggle-summary-btn")) return;
+
+  const btn = document.createElement("button");
+  btn.id = "toggle-summary-btn";
+  btn.textContent = "Show Summary"; // start hidden
+  btn.style.marginRight = "8px";
+  btn.classList.remove("active"); // summary hidden => not green
+  btn.onclick = () => {
+    const isHidden = document.body.classList.toggle("summary-hidden");
+    btn.textContent = isHidden ? "Show Summary" : "Hide Summary";
+    btn.classList.toggle("active", !isHidden);
+  };
+
+  // place it just before filterBlock
+  filterBlock.parentNode.insertBefore(btn, filterBlock);
+}
+
+// call once to add the button
+insertSummaryToggle();
+
+// ==================== Default States ====================
+document.body.classList.add("summary-hidden"); // hide summary by default
+document.getElementById("sort-time").classList.add("active"); // default sort active
+document.getElementById("sort-table").classList.remove("active");
+document.getElementById("sort-time").classList.add("active");
+document.getElementById("sort-time").textContent = "Time⬇";
+
 // ==================== WebSocket Message Handler ====================
 ws.onmessage = (msg) => {
   const data = JSON.parse(msg.data);
-  const ticketsData = data.tickets || [];
+  const ticketsData = (data.tickets || []).filter(
+    (t) => t.kds_name === kdsName || !t.kds_name // show only matching or unassigned tickets
+  );
   const summaryData = data.summary || [];
 
   tickets = ticketsData;
   renderTickets();
 
-  foodSummaryEl.innerHTML = summaryData
-    .map(
-      (item) =>
-        `<div class="food-item">
-           <span class="food-name">${item.name}</span>
-           <span class="food-qty">${item.qty}</span>
-         </div>`
-    )
-    .join("");
+  if (foodSummaryEl) {
+    foodSummaryEl.innerHTML = summaryData
+      .map(
+        (item) =>
+          `<div class="food-item">
+             <span class="food-name">${item.name}</span>
+             <span class="food-qty">${item.qty}</span>
+           </div>`
+      )
+      .join("");
+  }
 
   const currentIds = new Set(ticketsData.map((t) => t.kot_no));
   const newTickets = ticketsData.filter((t) => !lastTicketIds.has(t.kot_no));
-  if (newTickets.length > 0) {
-    try {
-      sound.play();
-    } catch {}
-  }
+  if (newTickets.length > 0) sound.play().catch(() => {});
   lastTicketIds = currentIds;
 };
 
@@ -141,134 +221,270 @@ document.querySelectorAll("#filter-checkboxes input").forEach((cb) => {
 
 // ==================== Sorting ====================
 document.getElementById("sort-time").addEventListener("click", () => {
-  sortBy = "time";
+  if (sortBy === "time") {
+    sortAsc = !sortAsc; // toggle direction
+  } else {
+    sortBy = "time";
+    sortAsc = false; // default to descending first
+  }
+  document.getElementById("sort-time").classList.add("active");
+  document.getElementById("sort-table").classList.remove("active");
+  document.getElementById("sort-time").textContent = sortAsc
+    ? "Time⬆"
+    : "Time⬇";
   renderTickets();
 });
-document.getElementById("sort-table").addEventListener("click", () => {
+
+document.getElementById("sort-table").addEventListener("click", (e) => {
   sortBy = "table";
+  document.getElementById("sort-table").classList.add("active");
+  document.getElementById("sort-time").classList.remove("active");
   renderTickets();
 });
 
 // ==================== View Toggle ====================
-document.getElementById("view-kot").addEventListener("click", () => {
-  currentView = "KOT";
-  document.getElementById("view-kot").classList.add("active");
-  document.getElementById("view-item").classList.remove("active");
-  renderTickets();
-});
-document.getElementById("view-item").addEventListener("click", () => {
-  currentView = "ITEM";
-  document.getElementById("view-item").classList.add("active");
-  document.getElementById("view-kot").classList.remove("active");
+const viewBtn = document.getElementById("view-btn");
+
+// initialize class
+viewBtn.classList.add("kot-view");
+viewBtn.textContent = "Switch to KOT View";
+
+viewBtn.addEventListener("click", () => {
+  if (currentView === "KOT") {
+    currentView = "ITEM";
+    viewBtn.textContent = "Switch to KOT View";
+    viewBtn.classList.remove("kot-view");
+    viewBtn.classList.add("item-view");
+  } else {
+    currentView = "KOT";
+    viewBtn.textContent = "Switch to Item View";
+    viewBtn.classList.remove("item-view");
+    viewBtn.classList.add("kot-view");
+  }
+
   renderTickets();
 });
 
 // ==================== Render Tickets ====================
 function renderTickets() {
+  // Clear previous timers
+  document.querySelectorAll(".ticket").forEach((t) => {
+    if (t._timerInterval) clearInterval(t._timerInterval);
+  });
+
   const sorted = [...tickets];
 
-  if (sortBy === "time")
-    sorted.sort((a, b) => new Date(a.created_on) - new Date(b.created_on));
-  if (sortBy === "table") sorted.sort((a, b) => a.table_no - b.table_no);
+  // Sorting
+  if (sortBy === "time") {
+    sorted.sort((a, b) =>
+      sortAsc
+        ? new Date(a.created_on) - new Date(b.created_on)
+        : new Date(b.created_on) - new Date(a.created_on)
+    );
+  } else if (sortBy === "table") {
+    sorted.sort((a, b) => a.table_no - b.table_no);
+  }
 
+  // Clear container
   ticketContainer.innerHTML = "";
+  let visibleTicketCount = 0;
 
   sorted.forEach((ticket) => {
-    const filteredItems = ticket.items.filter((it) => filters[it.status]);
-    if (filteredItems.length === 0) return;
+    // Filter tickets by order_type
+    if (!filters[ticket.order_type]) return;
 
-    const itemsToRender =
-      currentView === "ITEM" ? filteredItems : [filteredItems];
+    // Filter items inside ticket
+    const filteredItems = ticket.items.filter((it) => {
+      const state = Number(it.ack_status) === 1 ? "Ready" : "Pending";
+      return filters[state];
+    });
+    if (!filteredItems.length) return;
 
-    itemsToRender.forEach((itemArr) => {
+    visibleTicketCount++;
+
+    // ✅ Split into one-item tickets in ITEM view
+    const ticketsToRender =
+      currentView === "ITEM"
+        ? filteredItems.map((it) => ({
+            ...ticket,
+            items: [it],
+          }))
+        : [ticket];
+
+    ticketsToRender.forEach((tkt) => {
       const ticketEl = document.createElement("div");
       ticketEl.className = "ticket";
-      ticketEl.dataset.kot = ticket.kot_no;
-      ticketEl.dataset.bill = ticket.bill_no ?? "";
+      ticketEl.dataset.kot = tkt.kot_no;
+      ticketEl.dataset.bill = tkt.bill_no ?? "";
 
-      const allAck = ticket.items.every((it) => it.ack_status === 1);
+      // Ticket status
+      const allAck = tkt.items.every((it) => Number(it.ack_status) === 1);
       ticketEl.id = allAck ? "ticket_accepted" : "ticket_new";
 
-      const itemsHtml = (currentView === "ITEM" ? [itemArr] : itemArr)
+      // Header
+      const headerEl = document.createElement("div");
+      headerEl.className = "ticket-header";
+      headerEl.innerHTML = `<div>${tkt.kot_no} | ${tkt.order_type} ${tkt.table_no}</div>`;
+      headerEl.classList.add(tkt.order_type.toLowerCase().replace(/\s+/g, "-"));
+      ticketEl.appendChild(headerEl);
+
+      // Items container
+      const itemsContainer = document.createElement("div");
+      itemsContainer.className = "ticket-items";
+      ticketEl.appendChild(itemsContainer);
+
+      // Items HTML (only one in ITEM view)
+      const itemsHtml = tkt.items
         .map((it) => {
-          const commentText = it.comment || ticket.Comments || "";
-          return `<div class="ticket-item">
-                <div class="item-name">
-                  ${it.name}
-                  ${
-                    commentText
-                      ? `<span class="item-comment">${
-                          commentText === "spicy" ? "🌶🌶" : commentText
-                        }</span>`
-                      : ""
-                  }
-                </div>
-                <div>${it.qty}</div>
-                <div class="item-status" onclick="toggleItem('${
-                  ticket.kot_no
-                }','${ticket.bill_no}','${it.i_code}')">
-                  ${
-                    it.status === "Pending"
-                      ? "⏳"
-                      : it.status === "Ready"
-                      ? "✅"
-                      : "📦"
-                  }
-                </div>
-              </div>`;
+          const commentText = it.comment || tkt.Comments || "";
+          let itemClass = "pending";
+          if (Number(it.ack_status) === 1) itemClass = "ready";
+          else if (it.status === "Delivered") itemClass = "delivered";
+          else if (it.status === "Ready") itemClass = "ready";
+
+          const statusIcon =
+            Number(it.ack_status) === 1
+              ? '<img src="data/Images/Preparing.png" class="status-icon" alt="Ready">'
+              : "⏳";
+
+          return `<div class="ticket-item ${itemClass}" data-i-code="${
+            it.i_code
+          }">
+            <div class="item-name">
+              ${it.name}
+              ${
+                commentText
+                  ? `<span class="item-comment">${commentText}</span>`
+                  : ""
+              }
+            </div>
+            <div class="item-qty">${it.qty}</div>
+            <div class="item-status" onclick="toggleItem('${tkt.kot_no}','${
+            tkt.bill_no
+          }','${it.i_code}')">${statusIcon}</div>
+          </div>`;
         })
         .join("");
 
-      ticketEl.innerHTML = `
-        <div class="ticket-header">
-          <div>#${ticket.kot_no} | Tbl ${ticket.table_no}</div>
-          <div class="ticket-timer">00:00</div>
-        </div>
-        <div class="ticket-items">${itemsHtml}</div>
-      `;
-
+      itemsContainer.innerHTML = itemsHtml;
       ticketContainer.appendChild(ticketEl);
 
-      ticketEl.addEventListener("click", (e) => {
-        if (e.target.classList.contains("item-status")) return;
+      // ✅ ITEM view click → only one item turns green
+      if (currentView === "ITEM") {
+        // ✅ ITEM view: click anywhere on the ticket except status icon
+        ticketEl.addEventListener("click", (e) => {
+          if (e.target.classList.contains("item-status")) return;
+          const item = tkt.items[0]; // only one item per ticket now
+          if (!item) return;
 
-        ticket.items.forEach((it) => (it.ack_status = 1));
-        ticketEl.id = "ticket_accepted";
+          const wasAlreadyAcked = Number(item.ack_status) === 1;
+          item.ack_status = 1; // mark as acknowledged
+          ticketEl.classList.add("ticket-acked");
 
-        ws.send(
-          JSON.stringify({
-            action: "ack_ticket",
-            kot_no: ticket.kot_no,
-            bill_no: ticket.bill_no ?? "",
-          })
-        );
-      });
+          ws.send(
+            JSON.stringify({
+              action: "ack_ticket",
+              kot_no: tkt.kot_no,
+              bill_no: tkt.bill_no ?? "",
+              items: [{ i_code: item.i_code }],
+            })
+          );
 
-      const timerEl = ticketEl.querySelector(".ticket-timer");
+          showPopup(
+            wasAlreadyAcked
+              ? `Item Delivered: ${item.name}`
+              : `Item Accepted: ${item.name}`,
+            3000
+          );
+          e.stopPropagation();
+        });
+      } else {
+        // ✅ KOT view click → whole ticket acknowledged
+        ticketEl.addEventListener("click", (e) => {
+          if (e.target.classList.contains("item-status")) return;
+          const allAlreadyAcked = tkt.items.every(
+            (it) => Number(it.ack_status) === 1
+          );
+          tkt.items.forEach((it) => (it.ack_status = 1));
+
+          ws.send(
+            JSON.stringify({
+              action: "ack_ticket",
+              kot_no: tkt.kot_no,
+              bill_no: tkt.bill_no ?? "",
+              items: tkt.items.map((it) => ({ i_code: it.i_code })),
+            })
+          );
+
+          renderTickets();
+          showPopup(
+            allAlreadyAcked
+              ? `Order Delivered: KOT ${tkt.kot_no}`
+              : `Order Accepted: KOT ${tkt.kot_no}`,
+            3000
+          );
+        });
+      }
+
+      // Timer
+      const timerEl = document.createElement("div");
+      timerEl.className = "ticket-timer";
+      itemsContainer.appendChild(timerEl);
+
       const updateTimer = () => {
-        const createdTime = new Date(ticket.created_on);
+        const createdTime = new Date(tkt.created_on);
         const diffMs = new Date() - createdTime;
         const minutes = Math.floor(diffMs / 60000);
         const seconds = Math.floor((diffMs % 60000) / 1000);
-        timerEl.textContent = `${minutes.toString().padStart(2, "0")}:${seconds
+
+        timerEl.textContent = `Waiting : ${minutes
           .toString()
-          .padStart(2, "0")}`;
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
-        let color = "grey";
-        if (minutes > 10) color = "#e0474c";
-        else if (minutes > 5) color = "#f97316";
+        ticketEl.classList.remove(
+          "ticket-wait-grey",
+          "ticket-wait-orange",
+          "ticket-wait-red",
+          "ticket-acked"
+        );
+        if (minutes >= 5) ticketEl.classList.add("ticket-wait-red");
+        else if (minutes >= 3) ticketEl.classList.add("ticket-wait-orange");
+        else ticketEl.classList.add("ticket-wait-grey");
 
-        ticketEl.querySelector(".ticket-header").style.background = color;
-        ticketEl.style.border = `1px solid ${color}`;
+        if (currentView === "ITEM") {
+          if (tkt.items.some((it) => Number(it.ack_status) === 1))
+            ticketEl.classList.add("ticket-acked");
+        } else {
+          if (tkt.items.every((it) => Number(it.ack_status) === 1))
+            ticketEl.classList.add("ticket-acked");
+        }
       };
 
       updateTimer();
-      setInterval(updateTimer, 1000);
+      ticketEl._timerInterval = setInterval(updateTimer, 1000);
     });
   });
+
+  if (kotCountEl) kotCountEl.textContent = `No. of KOT = ${visibleTicketCount}`;
 }
 
 // ==================== Toggle Item ====================
 function toggleItem(kot_no, bill_no, i_code) {
+  const ticket = tickets.find((t) => String(t.kot_no) === String(kot_no));
+  if (!ticket) {
+    ws.send(JSON.stringify({ action: "toggle_item", kot_no, bill_no, i_code }));
+    return;
+  }
+
+  const item = ticket.items.find((it) => String(it.i_code) === String(i_code));
+  if (!item) {
+    ws.send(JSON.stringify({ action: "toggle_item", kot_no, bill_no, i_code }));
+    return;
+  }
+
+  item.ack_status = Number(item.ack_status) === 1 ? 0 : 1;
+
+  renderTickets();
+
   ws.send(JSON.stringify({ action: "toggle_item", kot_no, bill_no, i_code }));
 }

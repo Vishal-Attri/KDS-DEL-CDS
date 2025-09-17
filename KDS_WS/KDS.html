@@ -18,17 +18,29 @@
     <!-- Controls -->
     <div id="controls">
       <div id="sort-buttons" class="control-block">
-        <button id="sort-time">Sort by Time</button>
-        <button id="sort-table">Sort by Table</button>
+        <label id="sort">Sort By :</label>
+        <button id="sort-time">Time</button>
+        <button id="sort-table">Table</button>
       </div>
 
       <!-- View Toggle Buttons -->
-      <div id="view-buttons" class="control-block">
-        <button id="view-kot" class="active">KOT View</button>
-        <button id="view-item">Item View</button>
+      <!-- View Toggle Button -->
+      <div id="view-toggle" class="control-block">
+        <button id="view-btn">Switch to Item View</button>
       </div>
 
       <div id="filter-checkboxes" class="control-block">
+        <label
+          ><input type="checkbox" value="Table billing" checked />Table
+          billing</label
+        >
+        <label
+          ><input type="checkbox" value="Take Away" checked />Take Away</label
+        >
+        <label
+          ><input type="checkbox" value="Delivery" checked />Delivery</label
+        >
+        <label><input type="checkbox" value="Dine-in" checked />Dine-in</label>
         <label><input type="checkbox" value="Pending" checked /> Pending</label>
         <label><input type="checkbox" value="Ready" checked /> Ready</label>
         <label
@@ -46,8 +58,14 @@
       </ul>
     </div>
 
-    <!-- Tickets Grid -->
-    <div class="ticket-grid" id="tickets"></div>
+    <div class="data">
+      <!-- Tickets Grid -->
+      <div class="ticket-grid" id="tickets"></div>
+      <!-- Food Summary -->
+      <div id="food-summary">
+        <h1>Items</h1>
+      </div>
+    </div>
 
     <!-- Config/Login Modal -->
     <div id="config-modal">
@@ -60,14 +78,9 @@
       </div>
     </div>
 
-    <!-- Food Summary -->
-    <div id="food-summary">
-      <h1>Items</h1>
-    </div>
-
     <!-- Sound -->
-    <audio id="new-ticket-sound" src="new_ticket.mp3" preload="auto"></audio>
+    <audio id="new-ticket-sound" src="new_kot.mp3" preload="auto"></audio>
 
-    <script src="KDS.js"></script>
+    <script src="KDS.js?v=12345"></script>
   </body>
 </html>
