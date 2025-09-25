@@ -1,0 +1,54 @@
+.ticket {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  cursor: pointer;
+  font-weight: bolder;
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: var(--gap);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 6px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s;
+  cursor: pointer;
+}
+
+.ticket-item {
+  -webkit-font-smoothing: antialiased;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  list-style: none;
+  font-size: 0.8rem;
+  color: rgb(102, 102, 102);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: bolder;
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  padding: 4px 8px;
+  background: #374151; /* default bg for header */
+}
+.item-check {
+  width: 6%;
+}
+
+.ticket-select {
+  flex-shrink: 0;
+}
+
+.ticket-info {
+  flex: 1;
+}

@@ -25,32 +25,38 @@ body {
 
 /* ===================== Header ===================== */
 header {
-  display: flex;
-  justify-content: center;
+  display: flex !important;
+  justify-content: space-between !important;
   align-items: center;
   padding: 6px 10px;
   background: #33455e; /* dark bg */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  position: relative;
+  /* position: relative; */
   height: 45px;
 }
 
 /* ===================== Hamburger ===================== */
+.nav-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
 #hamburger {
-  position: absolute;
-  left: 10px;
+  /* position: absolute;
+  left: 0.7%; */
   font-size: 28px;
   cursor: pointer;
   color: white;
   z-index: 1001;
 }
 
-#kot-count {
-  position: absolute;
-  left: 60px;
-  font-size: 14px;
+#brand {
+  /* position: absolute; */
+  /* left: 3%; */
+
   color: white;
-  font-weight: 500;
 }
 
 header h1 {
@@ -59,12 +65,103 @@ header h1 {
   font-weight: 700;
 }
 
-#clock {
-  position: absolute;
-  right: 20px;
-  font-size: 14px;
+.header-info {
+  align-items: center;
+  font-size: 15px;
   color: white;
   font-weight: 500;
+  /* transform: translateY(-50%); */
+  display: flex;
+  right: 0.7%;
+  gap: 15px;
+}
+
+#print-toggle-container {
+  display: inline-block;
+  flex-direction: row;
+  align-items: center;
+}
+.switch-label {
+  position: relative;
+  top: 3px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Slider background */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  border-radius: 24px;
+  transition: background-color 0.4s;
+  font-size: 12px;
+  line-height: 24px;
+  text-align: center;
+  color: black;
+  font-weight: bolder;
+}
+
+/* The knob */
+.slider:before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.4s;
+}
+
+/* OFF text left */
+.slider::after {
+  content: "OFF";
+  position: absolute;
+  right: 15%;
+  top: 0;
+  width: 100%;
+  text-align: right;
+  pointer-events: none;
+}
+
+/* Checked state */
+input:checked + .slider {
+  background-color: #4caf50;
+  color: white;
+}
+
+/* ON text right */
+input:checked + .slider::after {
+  content: "ON";
+  text-align: left;
+  left: 15%;
+}
+
+/* Move knob */
+input:checked + .slider:before {
+  transform: translateX(36px);
+}
+
+#clock {
   font-family: monospace;
 }
 
@@ -149,9 +246,63 @@ h1 {
   background: #1e40af;
 }
 
+#iframe-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+#iframe-modal .iframe-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  width: 80%;
+  height: 80%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+#delivered-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+#iframe-close {
+  position: absolute;
+  right: 10px;
+  top: 5px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+#iframe-close {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  font-size: 28px;
+  color: #333;
+  cursor: pointer;
+  z-index: 2;
+}
+
+#iframe-close:hover {
+  color: red;
+}
+
 /* ===================== Ticket Grid ===================== */
 .ticket-grid {
-  column-count: 4;
+  column-count: 5;
   column-gap: var(--gap);
   padding: 10px;
   width: 100%;
@@ -159,6 +310,9 @@ h1 {
 
 /* ===================== Ticket Card ===================== */
 .ticket {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  cursor: pointer;
+  font-weight: bolder;
   break-inside: avoid;
   display: inline-block;
   width: 100%;
@@ -215,6 +369,13 @@ h1 {
 }
 
 .ticket-item {
+  -webkit-font-smoothing: antialiased;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  list-style: none;
+  font-size: 0.8rem;
+  color: rgb(102, 102, 102);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -222,8 +383,25 @@ h1 {
   border-radius: 4px;
   margin-bottom: 4px;
   font-size: 13px;
-  font-weight: 500;
+  text-decoration: none;
+  font-weight: bolder;
 }
+
+/* .ticket-item {
+  -webkit-font-smoothing: antialiased;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  list-style: none;
+  font-size: 0.8rem;
+  font-weight: bolder;
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  border-bottom: dashed 1px;
+
+
+} */
 
 .item-name {
   flex: 1;
@@ -232,6 +410,29 @@ h1 {
 .item-qty {
   margin-left: 10px;
   font-weight: 600;
+}
+
+/* ===================== Popup ===================== */
+#kds-popup {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.98);
+  background: rgba(9, 77, 73, 0.7);
+  color: orange;
+  padding: 14px 18px;
+  border-radius: 1px;
+  font-weight: 700;
+  font-size: 35dpx;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+#kds-popup.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
 }
 
 @media (max-width: 1200px) {

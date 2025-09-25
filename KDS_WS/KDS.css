@@ -47,34 +47,50 @@ header {
 /* ===================== Hamburger ===================== */
 #hamburger {
   position: absolute;
-  left: 10px;
+  left: 0.7%;
   font-size: 28px;
   cursor: pointer;
   color: white;
   z-index: 1001;
 }
 
-#kot-count {
+#brand {
+  color: white;
   position: absolute;
-  left: 60px;
-  font-size: 14px;
+  left: 3%;
+}
+
+.header-info {
+  display: inline-flex;
+  align-items: center; /* vertical center of items within header */
+  gap: 15px; /* spacing between clock, KOT, toggle */
+  position: absolute;
+  right: 1%; /* stick to right */
+  top: 50%;
+  transform: translateY(-50%); /* vertical center relative to header */
+}
+
+#kot-count {
+  position: static; /* remove absolute inside flex */
+  font-size: 15px;
   color: white;
   font-weight: 500;
+  /* position: absolute;
+  left: 1%; */
+}
+
+#clock {
+  position: static; /* remove absolute inside flex */
+  font-size: 15px;
+  color: white;
+  font-weight: 500;
+  font-family: monospace;
 }
 
 header h1 {
   color: white;
   font-size: 22px;
   font-weight: 700;
-}
-
-#clock {
-  position: absolute;
-  right: 20px;
-  font-size: 14px;
-  color: white;
-  font-weight: 500;
-  font-family: monospace;
 }
 
 h1 {
@@ -268,6 +284,8 @@ label {
 /* ===================== Ticket Card ===================== */
 .ticket {
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  cursor: pointer;
+  font-weight: bolder;
   break-inside: avoid;
   display: inline-block;
   width: 100%;
@@ -276,9 +294,7 @@ label {
   border-radius: var(--radius);
   padding: 4px;
   box-shadow: var(--shadow);
-  font-weight: bolder;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  cursor: pointer;
 }
 
 .ticket:hover {
@@ -342,7 +358,9 @@ label {
 }
 
 .ticket-acked {
-  background: #d1fae5 !important; /* light green */
+  background: #d1fae5 !important;
+  border: 2px solid green;
+  /* light green */
 }
 
 /* .ticket-wait-grey {

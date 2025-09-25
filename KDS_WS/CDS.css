@@ -12,12 +12,10 @@ h1 {
 }
 
 #ticket-container {
-  display: flex;
-  flex-direction: row;
-  columns: 6;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-  /* width: 90%; */
+  display: grid; /* switch from flex to grid */
+  grid-template-columns: repeat(6, 1fr); /* 6 columns per row */
+  gap: 15px;
+  width: 100%; /* optional */
 }
 
 .ticket {
@@ -31,19 +29,39 @@ h1 {
   color: white;
   border-radius: 10px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease;
+  /* transition: transform 0.3s ease; */
   cursor: pointer;
   text-align: center;
 }
 
-.ticket.pending {
-  background-color: #6c757d; /* grey */
-}
+/* .ticket.pending {
+  background-color: #6c757d;
+} */
 
 .ticket.ready {
   background-color: #28a745; /* green */
 }
 
-.ticket:hover {
-  transform: scale(1.05);
+#watermark {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  font-size: 13rem;
+  font-weight: bold;
+  color: rgba(0, 162, 255, 0.3);
+  pointer-events: none;
+  z-index: 9999;
+  text-align: center;
+  white-space: nowrap;
 }
+
+#watermark.visible {
+  display: block;
+}
+
+/* .ticket:hover {
+  transform: scale(1.05);
+} */

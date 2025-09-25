@@ -1,30 +1,49 @@
 const wsHost = window.location.hostname; // automatically gets IP on other PCs
 const ws = new WebSocket(`ws://${wsHost}:9998`);
 const ticketContainer = document.getElementById("ticket-container");
-let seenTickets = new Set(); // Track already shown tickets
+
+// Track current tickets displayed
+let shownTickets = new Map(); // kot_no -> status
 
 // ==================== Sound ====================
-const newTicketSound = new Audio("new_ticket.mp3");
-newTicketSound.preload = "auto";
-let soundUnlocked = false;
+// Reliable: reference the HTML audio element
+const newTicketSound = document.getElementById("new-ticket-sound");
 
-// Unlock audio on first click or keypress
-function unlockAudio() {
-  if (!soundUnlocked) {
-    newTicketSound
-      .play()
-      .then(() => {
-        newTicketSound.pause();
-        newTicketSound.currentTime = 0;
-        soundUnlocked = true;
-        console.log("✅ Audio unlocked");
-      })
-      .catch((err) => console.log("Audio unlock error:", err));
-  }
-}
+// ✅ Unlock audio immediately on page load
 
-document.addEventListener("click", unlockAudio, { once: true });
-document.addEventListener("keydown", unlockAudio, { once: true });
+// let soundUnlocked = true;
+
+// function unlockAudio() {
+//   if (!soundUnlocked) {
+//     newTicketSound
+//       .play()
+//       .then(() => {
+//         newTicketSound.pause();
+//         newTicketSound.currentTime = 0;
+//         soundUnlocked = true;
+//         console.log("✅ Audio unlocked");
+//       })
+//       .catch((err) => console.log("Audio unlock error:", err));
+//   }
+// }
+// document.addEventListener("click", unlockAudio, { once: true });
+// document.addEventListener("keydown", unlockAudio, { once: true });
+
+// ==================== Watermark ====================
+// const watermark = document.createElement("div");
+// watermark.id = "watermark";
+// watermark.textContent = "Synoweb";
+// document.body.appendChild(watermark);
+
+// ==================== Watermark Image ====================
+const watermark = document.createElement("div");
+watermark.id = "watermark";
+
+const wmImage = document.createElement("img");
+wmImage.src = "/data/Images/big_logo.png";
+watermark.appendChild(wmImage);
+
+document.body.appendChild(watermark);
 
 // ==================== WebSocket ====================
 ws.onmessage = (event) => {
@@ -33,59 +52,48 @@ ws.onmessage = (event) => {
     data = JSON.parse(event.data);
   } catch (err) {
     console.warn("❌ Invalid JSON received:", event.data);
-    return; // skip invalid message
+    return;
   }
 
   if (!data || !Array.isArray(data.tickets)) {
     console.warn("⚠️ No tickets array in message:", data);
-    return; // skip if no tickets
+    return;
   }
 
-  // ✅ Filter tickets with status 1 or 2
-  const readyTickets = data.tickets
-    .filter((t) => t.ticketstatus === 1 || t.ticketstatus === 2)
-    .map((t) => ({
-      kot_no: parseInt(t.kot_no),
-      ticketstatus: t.ticketstatus,
-    }));
+  data.tickets.forEach((ticket) => {
+    const prevStatus = shownTickets.get(ticket.kot_no);
+    const currStatus = ticket.ticketstatus;
 
-  // Sort tickets by KOT number
-  readyTickets.sort((a, b) => a.kot_no - b.kot_no);
-
-  // Play sound for newly appeared tickets
-  readyTickets.forEach((ticket) => {
-    if (!seenTickets.has(ticket.kot_no) && soundUnlocked) {
+    // Play sound only if status changed from 0/undefined → 1/2
+    if (
+      (prevStatus === 0 || prevStatus === undefined) &&
+      (currStatus === 1 || currStatus === 2)
+    ) {
       newTicketSound.currentTime = 0;
       newTicketSound.play().catch(() => {});
-      seenTickets.add(ticket.kot_no);
     }
+
+    // Update the status map
+    shownTickets.set(ticket.kot_no, currStatus);
   });
 
-  // Render ready tickets
+  // ✅ Now filter only ready tickets for UI
+  const readyTickets = data.tickets.filter(
+    (t) => t.ticketstatus === 1 || t.ticketstatus === 2
+  );
+  readyTickets.sort((b, a) => a.kot_no - b.kot_no);
+
+  // ✅ Update UI
   ticketContainer.innerHTML = "";
-  readyTickets.forEach((ticket) => {
-    const ticketEl = document.createElement("div");
-    ticketEl.classList.add("ticket", "ready");
-    ticketEl.textContent = ticket.kot_no;
-
-    // Send toggle message on click
-    ticketEl.onclick = () => {
-      ws.send(
-        JSON.stringify({
-          action: "toggle_ticket",
-          kot_no: ticket.kot_no,
-        })
-      );
-    };
-
-    // // Automatically remove after 10 seconds
-    // setTimeout(() => {
-    //   if (ticketEl.parentNode) {
-    //     ticketEl.classList.add("fade-out"); // for smooth animation
-    //     setTimeout(() => ticketEl.remove(), 500); // remove after fade-out
-    //   }
-    // }, 10000); // 10 sec
-
-    ticketContainer.appendChild(ticketEl);
-  });
+  if (readyTickets.length === 0) {
+    watermark.classList.add("visible");
+  } else {
+    watermark.classList.remove("visible");
+    readyTickets.forEach((ticket) => {
+      const ticketEl = document.createElement("div");
+      ticketEl.classList.add("ticket", "ready");
+      ticketEl.textContent = ticket.kot_no;
+      ticketContainer.appendChild(ticketEl);
+    });
+  }
 };

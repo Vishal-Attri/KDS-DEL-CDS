@@ -3,25 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data/Images/logo.png" />
     <title>KDS Delivery</title>
-    <link rel="stylesheet" href="KDS_DEL.css" />
+    <link rel="stylesheet" sizes="32x32" href="KDS_DEL.css" />
   </head>
   <body>
     <!-- Header -->
     <header>
-      <div id="hamburger">☰</div>
-      <h1>KDS Delivery</h1>
-      <div id="kot-count">No. of KOT = 0</div>
-      <div id="clock">00:00:00</div>
+      <div class="nav-left">
+        <div id="hamburger">☰</div>
+        <div id="brand">Powered by Synoweb</div>
+      </div>
+      <div>
+        <h1>KDS Delivery</h1>
+      </div>
+      <div class="header-info">
+        <div id="print-toggle-container">
+          <label class="switch-label">Print</label>
+          <label class="switch">
+            <input type="checkbox" id="print-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div id="kot-count">No. of KOT = 0</div>
+        <div id="clock">00:00:00</div>
+      </div>
     </header>
 
     <!-- Sidebar -->
     <div id="sidebar">
       <ul>
         <li id="dashboard-btn">Dashboard</li>
-        <li id="config">Configure</li>
-        <li id="current-kds-sidebar">KDS: NONE</li>
+        <li id="delivered-btn">Delivered Tickets</li>
+        <li id="config">Configuration</li>
+        <li id="current-kds-sidebar">KDS Name: NONE</li>
       </ul>
+      <!-- Iframe container (hidden by default) -->
+      <div id="iframe-modal">
+        <div class="iframe-content">
+          <span id="iframe-close">&times;</span>
+          <iframe id="delivered-iframe"></iframe>
+        </div>
+      </div>
     </div>
 
     <!-- Ticket Grid -->

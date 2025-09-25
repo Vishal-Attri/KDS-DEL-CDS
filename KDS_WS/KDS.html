@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data/Images/logo.png" />
     <title>KDS</title>
     <link rel="stylesheet" href="KDS.css" />
   </head>
@@ -10,9 +11,12 @@
     <!-- Header -->
     <header>
       <div id="hamburger">☰</div>
+      <div id="brand">Powered by Synoweb</div>
       <h1>Kitchen Display System</h1>
-      <div id="kot-count">No. of KOT = 0</div>
-      <div id="clock">00:00:00</div>
+      <div class="header-info">
+        <div id="kot-count">No. of KOT = 0</div>
+        <div id="clock">00:00:00</div>
+      </div>
     </header>
 
     <!-- Controls -->
@@ -24,7 +28,7 @@
       </div>
 
       <!-- View Toggle Buttons -->
-      <!-- View Toggle Button -->
+
       <div id="view-toggle" class="control-block">
         <button id="view-btn">Switch to Item View</button>
       </div>
@@ -53,8 +57,8 @@
     <div id="sidebar">
       <ul>
         <li id="dashboard-btn">Dashboard</li>
-        <li id="config">Configure</li>
-        <li id="current-kds-sidebar">KDS: NONE</li>
+        <li id="config">Configuration</li>
+        <li id="current-kds-sidebar">KDS Name:NONE</li>
       </ul>
     </div>
 

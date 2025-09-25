@@ -37,26 +37,6 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ==================== WebSocket ====================
-const wsHost = window.location.hostname; // automatically gets IP
-const ws = new WebSocket(`ws://${wsHost}:9999`);
-
-ws.onopen = () => {
-  // ✅ Auto-initialize KDS name when socket opens
-  kdsName = localStorage.getItem("kds_name");
-  if (!kdsName) {
-    kdsName = "NONE";
-  }
-
-  // Send KDS name to the server after socket connects
-  ws.send(JSON.stringify({ action: "init_kds", kds_name: kdsName }));
-
-  // ✅ Also update sidebar right after connecting if KDS name exists
-  if (currentKdsSidebarEl) {
-    currentKdsSidebarEl.textContent = `KDS: ${kdsName}`;
-  }
-};
-
 // ==================== Sidebar & Login ====================
 let loggedIn = localStorage.getItem("kds_logged_in") === "true";
 let kdsName = localStorage.getItem("kds_name") || "";
@@ -183,33 +163,62 @@ document.getElementById("sort-time").classList.add("active");
 document.getElementById("sort-time").textContent = "Time⬇";
 
 // ==================== WebSocket Message Handler ====================
-ws.onmessage = (msg) => {
-  const data = JSON.parse(msg.data);
-  const ticketsData = (data.tickets || []).filter(
-    (t) => t.kds_name === kdsName || !t.kds_name // show only matching or unassigned tickets
-  );
-  const summaryData = data.summary || [];
+let ws; // global WebSocket reference
 
-  tickets = ticketsData;
-  renderTickets();
+function connectKDS() {
+  const wsHost = window.location.hostname;
+  ws = new WebSocket(`ws://${wsHost}:9999`);
 
-  if (foodSummaryEl) {
-    foodSummaryEl.innerHTML = summaryData
-      .map(
-        (item) =>
-          `<div class="food-item">
-             <span class="food-name">${item.name}</span>
-             <span class="food-qty">${item.qty}</span>
-           </div>`
-      )
-      .join("");
-  }
+  ws.onopen = () => {
+    console.log("✅ WebSocket connected");
+    kdsName = localStorage.getItem("kds_name") || "NONE";
+    ws.send(JSON.stringify({ action: "init_kds", kds_name: kdsName }));
 
-  const currentIds = new Set(ticketsData.map((t) => t.kot_no));
-  const newTickets = ticketsData.filter((t) => !lastTicketIds.has(t.kot_no));
-  if (newTickets.length > 0) sound.play().catch(() => {});
-  lastTicketIds = currentIds;
-};
+    if (currentKdsSidebarEl) {
+      currentKdsSidebarEl.textContent = `KDS Name: ${kdsName}`;
+    }
+  };
+
+  ws.onmessage = (msg) => {
+    const data = JSON.parse(msg.data);
+    const ticketsData = (data.tickets || []).filter(
+      (t) => t.kds_name === kdsName || !t.kds_name
+    );
+    tickets = ticketsData;
+    renderTickets();
+
+    const summaryData = data.summary || [];
+    if (foodSummaryEl) {
+      foodSummaryEl.innerHTML = summaryData
+        .map(
+          (item) =>
+            `<div class="food-item">
+               <span class="food-name">${item.name}</span>
+               <span class="food-qty">${item.qty}</span>
+             </div>`
+        )
+        .join("");
+    }
+
+    const currentIds = new Set(ticketsData.map((t) => t.kot_no));
+    const newTickets = ticketsData.filter((t) => !lastTicketIds.has(t.kot_no));
+    if (newTickets.length > 0) sound.play().catch(() => {});
+    lastTicketIds = currentIds;
+  };
+
+  ws.onerror = (err) => {
+    console.error("WebSocket error:", err);
+    ws.close(); // triggers onclose
+  };
+
+  ws.onclose = () => {
+    console.warn("❌ WebSocket closed. Reconnecting in 3s...");
+    setTimeout(connectKDS, 3000); // reconnect loop
+  };
+}
+
+// Start the WebSocket
+connectKDS();
 
 // ==================== Filters ====================
 document.querySelectorAll("#filter-checkboxes input").forEach((cb) => {
@@ -359,9 +368,9 @@ function renderTickets() {
               }
             </div>
             <div class="item-qty">${it.qty}</div>
-            <div class="item-status" onclick="toggleItem('${tkt.kot_no}','${
-            tkt.bill_no
-          }','${it.i_code}')">${statusIcon}</div>
+            <div class="item-status" onclick="toggleItem('${ticket.kot_no}','${
+            ticket.bill_no
+          }','${it.i_code}', event)">${statusIcon}</div>
           </div>`;
         })
         .join("");
@@ -436,6 +445,7 @@ function renderTickets() {
         const diffMs = new Date() - createdTime;
         const minutes = Math.floor(diffMs / 60000);
         const seconds = Math.floor((diffMs % 60000) / 1000);
+        const totalSeconds = Math.floor(diffMs / 1000);
 
         timerEl.textContent = `Waiting : ${minutes
           .toString()
@@ -449,6 +459,11 @@ function renderTickets() {
         );
         if (minutes >= 5) ticketEl.classList.add("ticket-wait-red");
         else if (minutes >= 3) ticketEl.classList.add("ticket-wait-orange");
+        else if (
+          seconds > 30 &&
+          tkt.items.some((it) => Number(it.ack_status) === 0)
+        )
+          ticketEl.classList.add("ticket-wait-red");
         else ticketEl.classList.add("ticket-wait-grey");
 
         if (currentView === "ITEM") {
@@ -469,7 +484,9 @@ function renderTickets() {
 }
 
 // ==================== Toggle Item ====================
-function toggleItem(kot_no, bill_no, i_code) {
+function toggleItem(kot_no, bill_no, i_code, e) {
+  if (e) e.stopPropagation(); // prevent parent ticket click from firing
+
   const ticket = tickets.find((t) => String(t.kot_no) === String(kot_no));
   if (!ticket) {
     ws.send(JSON.stringify({ action: "toggle_item", kot_no, bill_no, i_code }));
@@ -482,6 +499,7 @@ function toggleItem(kot_no, bill_no, i_code) {
     return;
   }
 
+  // Toggle only this item
   item.ack_status = Number(item.ack_status) === 1 ? 0 : 1;
 
   renderTickets();
